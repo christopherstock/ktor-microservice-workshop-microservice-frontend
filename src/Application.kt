@@ -6,8 +6,8 @@ import kotlinx.html.*
 import io.ktor.http.*
 import io.ktor.response.*
 import io.ktor.routing.*
-import io.nats.client.Connection
-import io.nats.client.Nats
+import io.nats.client.*
+import java.time.Duration
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -33,6 +33,25 @@ fun Application.module(testing: Boolean = false) {
                 body {
                     h1 { +acclaim }
                     p { +content }
+                }
+            }
+        }
+        get("/joke") {
+            val sub: Subscription = natsConnection.subscribe("backend.joked")
+            natsConnection.publish("backend.joke", "".toByteArray())
+            val message: Message = sub.nextMessage(Duration.ofSeconds(2))
+
+            val title = "Joke Frontend"
+            val headline = "Joke of the Day"
+            val joke = String(message.data)
+
+            call.respondHtml {
+                head {
+                    title { +title }
+                }
+                body {
+                    h1 { +headline }
+                    p { +joke }
                 }
             }
         }
